@@ -14,13 +14,34 @@ from app.modules.leakage_detection import LeakageDetector
 from app.modules.preprocessing import DataPreprocessor
 from app.modules.visualization import DataVisualizer
 
-app = Flask(__name__)
+# Configure Flask with correct paths
+app = Flask(__name__, 
+            template_folder='app/templates',
+            static_folder='app/static')
 app.secret_key = 'your-secret-key-change-this-in-production'
 app.config['UPLOAD_FOLDER'] = 'app/static/uploads'
 app.config['CLEANED_FOLDER'] = 'app/static/cleaned'
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB max file size
 
 ALLOWED_EXTENSIONS = {'csv'}
+
+
+def convert_to_serializable(obj):
+    """Convert numpy/pandas types to native Python types for JSON serialization"""
+    if isinstance(obj, dict):
+        return {key: convert_to_serializable(value) for key, value in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_to_serializable(item) for item in obj]
+    elif isinstance(obj, (np.integer, np.int64)):
+        return int(obj)
+    elif isinstance(obj, (np.floating, np.float64)):
+        return float(obj)
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif pd.isna(obj):
+        return None
+    else:
+        return obj
 
 
 def allowed_file(filename):
@@ -97,6 +118,9 @@ def analyze():
         analyzer = DatasetAnalyzer(df)
         analysis = analyzer.analyze()
         
+        # Convert to serializable format for session storage
+        analysis = convert_to_serializable(analysis)
+        
         # Store analysis in session
         session['analysis'] = analysis
         
@@ -136,6 +160,10 @@ def detect_leakage():
         detector = LeakageDetector(df, target_column)
         leakage_report = detector.detect_all_leakage()
         leakage_summary = detector.get_leakage_summary()
+        
+        # Convert to serializable format
+        leakage_report = convert_to_serializable(leakage_report)
+        leakage_summary = convert_to_serializable(leakage_summary)
         
         # Store in session
         session['leakage_report'] = leakage_report
