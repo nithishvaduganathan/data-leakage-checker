@@ -18,7 +18,8 @@ from app.modules.visualization import DataVisualizer
 app = Flask(__name__, 
             template_folder='app/templates',
             static_folder='app/static')
-app.secret_key = 'your-secret-key-change-this-in-production'
+# Configure secret key from environment variable or use default for development
+app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
 app.config['UPLOAD_FOLDER'] = 'app/static/uploads'
 app.config['CLEANED_FOLDER'] = 'app/static/cleaned'
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB max file size
@@ -456,4 +457,9 @@ if __name__ == '__main__':
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     os.makedirs(app.config['CLEANED_FOLDER'], exist_ok=True)
     
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    # Get configuration from environment
+    debug_mode = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
+    host = os.environ.get('FLASK_HOST', '127.0.0.1')
+    port = int(os.environ.get('FLASK_PORT', 5000))
+    
+    app.run(debug=debug_mode, host=host, port=port)

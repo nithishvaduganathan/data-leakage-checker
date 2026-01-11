@@ -76,7 +76,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 
 # Run the application
-python app.py
+python run.py
 ```
 
 ### Option 2: Using conda
@@ -94,18 +94,39 @@ conda activate leakage-detector
 pip install -r requirements.txt
 
 # Run the application
-python app.py
+python run.py
 ```
 
 ## 🚀 Usage
 
+### Development Mode
+
 1. **Start the application**:
    ```bash
-   python app.py
+   python run.py
    ```
 
 2. **Access the web interface**:
    Open your browser and navigate to `http://localhost:5000`
+
+### Production Deployment
+
+For production deployment, use a WSGI server like Gunicorn:
+
+```bash
+# Install Gunicorn
+pip install gunicorn
+
+# Set environment variables
+export SECRET_KEY="your-secure-random-secret-key"
+export FLASK_HOST="0.0.0.0"
+export FLASK_PORT="5000"
+
+# Run with Gunicorn
+gunicorn -w 4 -b 0.0.0.0:5000 run:app
+```
+
+**Important**: Never use debug mode in production and always set a strong SECRET_KEY.
 
 3. **Upload a dataset**:
    - Click "Upload" and select a CSV file (max 50MB)
@@ -139,12 +160,14 @@ python app.py
 
 ```
 data-leakage-checker/
-├── app.py                          # Main Flask application
+├── run.py                          # Main Flask application entry point
 ├── requirements.txt                # Python dependencies
 ├── README.md                       # Documentation
 ├── .gitignore                      # Git ignore file
 └── app/
+    ├── __init__.py                 # Package init
     ├── modules/
+    │   ├── __init__.py             # Module init
     │   ├── dataset_analyzer.py     # Dataset analysis module
     │   ├── leakage_detection.py    # Leakage detection module
     │   ├── preprocessing.py        # Preprocessing module
