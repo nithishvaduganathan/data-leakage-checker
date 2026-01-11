@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block title %}Final Report{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">
+    <i class="bi bi-check-circle"></i> Final Validation Report
+</h2>
+
+<!-- Validation Status -->
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="bi bi-shield-check"></i> Validation Status
+    </div>
+    <div class="card-body text-center">
+        {% if validation_status == 'PASS' %}
+        <div class="display-1 text-success mb-3">
+            <i class="bi bi-check-circle-fill"></i>
+        </div>
+        <h3 class="text-success">VALIDATION PASSED</h3>
+        <p class="lead">No critical data leakage detected in the cleaned dataset!</p>
+        {% else %}
+        <div class="display-1 text-warning mb-3">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+        </div>
+        <h3 class="text-warning">VALIDATION WARNING</h3>
+        <p class="lead">Some leakage issues still remain. Review the report below.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Preprocessing Log -->
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="bi bi-list-ol"></i> Preprocessing Operations Applied
+    </div>
+    <div class="card-body">
+        {% if preprocessing_log %}
+        <ol class="list-group list-group-numbered">
+            {% for operation in preprocessing_log %}
+            <li class="list-group-item">{{ operation }}</li>
+            {% endfor %}
+        </ol>
+        {% else %}
+        <p class="text-muted mb-0">No preprocessing operations were applied.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Comparison -->
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="bi bi-arrow-left-right"></i> Before vs After Comparison
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <h5 class="text-center mb-3">Original Dataset</h5>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <tr>
+                            <th>Total Issues</th>
+                            <td class="text-end">{{ original_summary.total_issues }}</td>
+                        </tr>
+                        <tr>
+                            <th>High Severity</th>
+                            <td class="text-end text-danger">{{ original_summary.high_severity }}</td>
+                        </tr>
+                        <tr>
+                            <th>Medium Severity</th>
+                            <td class="text-end text-warning">{{ original_summary.medium_severity }}</td>
+                        </tr>
+                        <tr>
+                            <th>Low Severity</th>
+                            <td class="text-end text-success">{{ original_summary.low_severity }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <h5 class="text-center mb-3">Cleaned Dataset</h5>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <tr>
+                            <th>Total Issues</th>
+                            <td class="text-end">{{ new_leakage_summary.total_issues }}</td>
+                        </tr>
+                        <tr>
+                            <th>High Severity</th>
+                            <td class="text-end text-danger">{{ new_leakage_summary.high_severity }}</td>
+                        </tr>
+                        <tr>
+                            <th>Medium Severity</th>
+                            <td class="text-end text-warning">{{ new_leakage_summary.medium_severity }}</td>
+                        </tr>
+                        <tr>
+                            <th>Low Severity</th>
+                            <td class="text-end text-success">{{ new_leakage_summary.low_severity }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Remaining Issues -->
+{% if new_leakage_report %}
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="bi bi-exclamation-circle"></i> Remaining Issues in Cleaned Dataset
+    </div>
+    <div class="card-body">
+        {% for issue in new_leakage_report %}
+        <div class="alert alert-{{ 'danger' if issue.severity == 'high' else 'warning' if issue.severity == 'medium' else 'info' }}">
+            <strong>{{ issue.type }}</strong> - 
+            <span class="badge badge-{{ issue.severity }}">{{ issue.severity|upper }}</span>
+            <p class="mb-1 mt-2">{{ issue.description }}</p>
+            <small><i class="bi bi-lightbulb"></i> {{ issue.recommendation }}</small>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Download Section -->
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="bi bi-download"></i> Download Cleaned Dataset
+    </div>
+    <div class="card-body">
+        <p><strong>File:</strong> {{ cleaned_filename }}</p>
+        <p class="text-muted">
+            The cleaned dataset has been processed according to your specifications. 
+            You can now download it for use in your machine learning projects.
+        </p>
+        <div class="d-grid gap-2 d-md-flex">
+            <a href="{{ url_for('download_cleaned') }}" class="btn btn-success btn-lg">
+                <i class="bi bi-download"></i> Download Cleaned CSV
+            </a>
+            <a href="{{ url_for('visualize', dataset='cleaned') }}" class="btn btn-outline-primary btn-lg">
+                <i class="bi bi-bar-chart"></i> Visualize Cleaned Data
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Next Steps -->
+<div class="card">
+    <div class="card-body">
+        <h5 class="card-title"><i class="bi bi-lightbulb"></i> Recommendations</h5>
+        <ul>
+            {% if validation_status == 'PASS' %}
+            <li>Your dataset is ready for machine learning!</li>
+            <li>Remember to split your data into train/test sets AFTER these preprocessing steps</li>
+            <li>Apply any scaling or encoding transformations after the split to avoid leakage</li>
+            <li>If using time-series data, ensure temporal ordering in your splits</li>
+            {% else %}
+            <li>Review remaining leakage issues above</li>
+            <li>Consider manual inspection of flagged columns</li>
+            <li>You may need to adjust preprocessing parameters or remove additional columns</li>
+            {% endif %}
+        </ul>
+        <div class="d-grid gap-2 d-md-flex">
+            <a href="{{ url_for('preprocess') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Adjust Preprocessing
+            </a>
+            <a href="{{ url_for('index') }}" class="btn btn-outline-primary">
+                <i class="bi bi-upload"></i> Upload New Dataset
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

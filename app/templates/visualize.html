@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+
+{% block title %}Data Visualization{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">
+    <i class="bi bi-bar-chart"></i> Interactive Data Visualization
+</h2>
+
+<div class="alert alert-info">
+    <i class="bi bi-info-circle"></i>
+    <strong>Viewing:</strong> 
+    {% if dataset_type == 'cleaned' %}
+        Cleaned Dataset - {{ filename }}
+    {% else %}
+        Original Dataset - {{ filename }}
+    {% endif %}
+</div>
+
+<!-- Dataset Selector -->
+{% if has_cleaned %}
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="btn-group" role="group">
+            <a href="{{ url_for('visualize', dataset='original') }}" 
+               class="btn btn-{% if dataset_type == 'original' %}primary{% else %}outline-primary{% endif %}">
+                <i class="bi bi-file-earmark"></i> Original Dataset
+            </a>
+            <a href="{{ url_for('visualize', dataset='cleaned') }}" 
+               class="btn btn-{% if dataset_type == 'cleaned' %}primary{% else %}outline-primary{% endif %}">
+                <i class="bi bi-file-earmark-check"></i> Cleaned Dataset
+            </a>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Chart Selection -->
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="bi bi-palette"></i> Create Visualization
+    </div>
+    <div class="card-body">
+        <form id="chartForm">
+            <input type="hidden" name="dataset_type" value="{{ dataset_type }}">
+            
+            <div class="mb-3">
+                <label class="form-label"><strong>Select Chart Type:</strong></label>
+                <select class="form-select" id="chartType" name="chart_type" required>
+                    <option value="">-- Select Chart Type --</option>
+                    <option value="bar_chart">Bar Chart</option>
+                    <option value="line_chart">Line Chart</option>
+                    <option value="histogram">Histogram</option>
+                    <option value="box_plot">Box Plot</option>
+                    <option value="scatter_plot">Scatter Plot</option>
+                    <option value="pie_chart">Pie Chart</option>
+                    <option value="correlation_heatmap">Correlation Heatmap</option>
+                </select>
+            </div>
+            
+            <!-- Dynamic column selection based on chart type -->
+            <div id="columnSelectors"></div>
+            
+            <div class="d-grid">
+                <button type="submit" class="btn btn-primary" id="generateBtn" disabled>
+                    <i class="bi bi-graph-up"></i> Generate Chart
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Chart Display -->
+<div id="chartContainer" style="display: none;">
+    <div class="card">
+        <div class="card-header">
+            <i class="bi bi-graph-up"></i> Visualization Result
+        </div>
+        <div class="card-body">
+            <div id="chartDisplay"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Indicator -->
+<div id="loadingIndicator" style="display: none;">
+    <div class="text-center">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-2">Generating chart...</p>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Column data from backend
+const numericCols = {{ numeric_cols|tojson }};
+const categoricalCols = {{ categorical_cols|tojson }};
+const allCols = {{ all_cols|tojson }};
+
+// Chart type change handler
+document.getElementById('chartType').addEventListener('change', function() {
+    const chartType = this.value;
+    const selectors = document.getElementById('columnSelectors');
+    selectors.innerHTML = '';
+    
+    if (!chartType) {
+        document.getElementById('generateBtn').disabled = true;
+        return;
+    }
+    
+    let html = '';
+    
+    switch(chartType) {
+        case 'bar_chart':
+        case 'pie_chart':
+            html = `
+                <div class="mb-3">
+                    <label class="form-label">Select Column:</label>
+                    <select class="form-select" name="column" required>
+                        <option value="">-- Select Column --</option>
+                        ${categoricalCols.map(col => `<option value="${col}">${col}</option>`).join('')}
+                    </select>
+                </div>
+            `;
+            break;
+            
+        case 'histogram':
+        case 'box_plot':
+            html = `
+                <div class="mb-3">
+                    <label class="form-label">Select Numerical Column:</label>
+                    <select class="form-select" name="column" required>
+                        <option value="">-- Select Column --</option>
+                        ${numericCols.map(col => `<option value="${col}">${col}</option>`).join('')}
+                    </select>
+                </div>
+            `;
+            break;
+            
+        case 'line_chart':
+            html = `
+                <div class="mb-3">
+                    <label class="form-label">Select X Column:</label>
+                    <select class="form-select" name="x_column" required>
+                        <option value="">-- Select Column --</option>
+                        ${allCols.map(col => `<option value="${col}">${col}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Select Y Column:</label>
+                    <select class="form-select" name="y_column" required>
+                        <option value="">-- Select Column --</option>
+                        ${numericCols.map(col => `<option value="${col}">${col}</option>`).join('')}
+                    </select>
+                </div>
+            `;
+            break;
+            
+        case 'scatter_plot':
+            html = `
+                <div class="mb-3">
+                    <label class="form-label">Select X Column:</label>
+                    <select class="form-select" name="x_column" required>
+                        <option value="">-- Select Column --</option>
+                        ${numericCols.map(col => `<option value="${col}">${col}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Select Y Column:</label>
+                    <select class="form-select" name="y_column" required>
+                        <option value="">-- Select Column --</option>
+                        ${numericCols.map(col => `<option value="${col}">${col}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Color by (optional):</label>
+                    <select class="form-select" name="color_column">
+                        <option value="">-- None --</option>
+                        ${categoricalCols.map(col => `<option value="${col}">${col}</option>`).join('')}
+                    </select>
+                </div>
+            `;
+            break;
+            
+        case 'correlation_heatmap':
+            html = `
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i>
+                    Correlation heatmap will be generated for all numerical columns.
+                </div>
+            `;
+            break;
+    }
+    
+    selectors.innerHTML = html;
+    document.getElementById('generateBtn').disabled = false;
+});
+
+// Form submission handler
+document.getElementById('chartForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    // Show loading indicator
+    document.getElementById('loadingIndicator').style.display = 'block';
+    document.getElementById('chartContainer').style.display = 'none';
+    
+    // Send request to generate chart
+    fetch('{{ url_for("generate_chart") }}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('loadingIndicator').style.display = 'none';
+        
+        if (data.success) {
+            const chartData = JSON.parse(data.chart);
+            document.getElementById('chartContainer').style.display = 'block';
+            Plotly.newPlot('chartDisplay', chartData.data, chartData.layout, {responsive: true});
+        } else {
+            alert('Error generating chart: ' + data.error);
+        }
+    })
+    .catch(error => {
+        document.getElementById('loadingIndicator').style.display = 'none';
+        alert('Error: ' + error);
+    });
+});
+</script>
+{% endblock %}
