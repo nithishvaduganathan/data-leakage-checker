@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Dataset - Data Leakage Detection System{% endblock %}
+
+{% block content %}
+<div class="text-center mb-5">
+    <h1 class="display-4 fw-bold mb-3">
+        <i class="bi bi-shield-check text-primary"></i>
+        Data Leakage Detection System
+    </h1>
+    <p class="lead text-muted">
+        Upload your CSV dataset for comprehensive analysis and intelligent preprocessing
+    </p>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-upload"></i> Upload Dataset
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('upload_file') }}" enctype="multipart/form-data">
+                    <div class="mb-4">
+                        <label for="file" class="form-label fw-bold">Select CSV File</label>
+                        <input type="file" class="form-control form-control-lg" id="file" name="file" 
+                               accept=".csv" required>
+                        <div class="form-text">
+                            <i class="bi bi-info-circle"></i> Upload a CSV file (maximum 50MB)
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-cloud-upload"></i> Upload and Analyze
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-lightbulb"></i> Features</h5>
+                <ul class="list-unstyled">
+                    <li class="mb-2">
+                        <i class="bi bi-check-circle-fill text-success"></i>
+                        <strong>Dataset Analysis:</strong> Automatic detection of numerical, categorical, datetime, and ID columns
+                    </li>
+                    <li class="mb-2">
+                        <i class="bi bi-check-circle-fill text-success"></i>
+                        <strong>Leakage Detection:</strong> Target, train-test, temporal, and encoding leakage detection
+                    </li>
+                    <li class="mb-2">
+                        <i class="bi bi-check-circle-fill text-success"></i>
+                        <strong>Smart Preprocessing:</strong> Missing values, outliers, encoding, scaling, and feature selection
+                    </li>
+                    <li class="mb-2">
+                        <i class="bi bi-check-circle-fill text-success"></i>
+                        <strong>Interactive Visualizations:</strong> Multiple chart types with dynamic column selection
+                    </li>
+                    <li class="mb-2">
+                        <i class="bi bi-check-circle-fill text-success"></i>
+                        <strong>ML-Ready Export:</strong> Download cleaned, leakage-free datasets
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-5">
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="bi bi-1-circle-fill text-primary" style="font-size: 3rem;"></i>
+                <h5 class="card-title mt-3">Upload Dataset</h5>
+                <p class="card-text text-muted">Upload your CSV file for analysis</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="bi bi-2-circle-fill text-primary" style="font-size: 3rem;"></i>
+                <h5 class="card-title mt-3">Detect Leakage</h5>
+                <p class="card-text text-muted">Identify potential data leakage issues</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="bi bi-3-circle-fill text-primary" style="font-size: 3rem;"></i>
+                <h5 class="card-title mt-3">Preprocess & Export</h5>
+                <p class="card-text text-muted">Clean data and download ML-ready dataset</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

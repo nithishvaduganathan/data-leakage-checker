@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block title %}Dataset Analysis{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">
+    <i class="bi bi-graph-up"></i> Dataset Analysis
+</h2>
+
+<div class="alert alert-info">
+    <i class="bi bi-file-earmark-text"></i> <strong>File:</strong> {{ filename }}
+</div>
+
+<!-- Dataset Profiling -->
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="bi bi-table"></i> Dataset Profile
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3">
+                <div class="text-center p-3 bg-light rounded">
+                    <h3 class="text-primary">{{ analysis.row_count }}</h3>
+                    <p class="mb-0">Total Rows</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="text-center p-3 bg-light rounded">
+                    <h3 class="text-primary">{{ analysis.column_count }}</h3>
+                    <p class="mb-0">Total Columns</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="text-center p-3 bg-light rounded">
+                    <h3 class="text-warning">{{ analysis.missing_values|length }}</h3>
+                    <p class="mb-0">Columns with Missing Values</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="text-center p-3 bg-light rounded">
+                    <h3 class="text-danger">{{ analysis.duplicate_count }}</h3>
+                    <p class="mb-0">Duplicate Rows</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Column Analysis -->
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="bi bi-list-columns"></i> Column Analysis
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Column Name</th>
+                        <th>Type</th>
+                        <th>Data Type</th>
+                        <th>Unique Values</th>
+                        <th>Missing</th>
+                        <th>Sample Values</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for col_name, col_info in analysis.columns.items() %}
+                    <tr>
+                        <td><strong>{{ col_name }}</strong></td>
+                        <td>
+                            {% if col_info.type == 'numerical' %}
+                                <span class="badge bg-primary">{{ col_info.type }}</span>
+                            {% elif col_info.type == 'categorical' %}
+                                <span class="badge bg-success">{{ col_info.type }}</span>
+                            {% elif col_info.type == 'datetime' %}
+                                <span class="badge bg-info">{{ col_info.type }}</span>
+                            {% elif col_info.type == 'id' %}
+                                <span class="badge bg-warning">{{ col_info.type }}</span>
+                            {% endif %}
+                        </td>
+                        <td><code>{{ col_info.dtype }}</code></td>
+                        <td>{{ col_info.unique_count }}</td>
+                        <td>
+                            {% if col_info.missing_count > 0 %}
+                                <span class="text-danger">{{ col_info.missing_count }}</span>
+                            {% else %}
+                                <span class="text-success">0</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <small>{{ col_info.sample_values|join(', ') }}</small>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Missing Values Detail -->
+{% if analysis.missing_values %}
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="bi bi-exclamation-triangle"></i> Missing Values Detail
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Column</th>
+                        <th>Missing Count</th>
+                        <th>Percentage</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for col, count in analysis.missing_values.items() %}
+                    <tr>
+                        <td>{{ col }}</td>
+                        <td>{{ count }}</td>
+                        <td>{{ "%.2f"|format((count / analysis.row_count) * 100) }}%</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Dataset Preview -->
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="bi bi-eye"></i> Dataset Preview (First 10 Rows)
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            {{ df_head|safe }}
+        </div>
+    </div>
+</div>
+
+<!-- Target Column Selection -->
+<div class="card">
+    <div class="card-header">
+        <i class="bi bi-bullseye"></i> Select Target Column
+    </div>
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('select_target') }}">
+            <div class="row align-items-end">
+                <div class="col-md-8">
+                    <label for="target_column" class="form-label">
+                        Select the target column for leakage detection (optional)
+                    </label>
+                    <select class="form-select" id="target_column" name="target_column">
+                        <option value="">-- No target column --</option>
+                        {% for col_name in analysis.columns.keys() %}
+                        <option value="{{ col_name }}">{{ col_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-arrow-right"></i> Proceed to Leakage Detection
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block title %}Data Preprocessing{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">
+    <i class="bi bi-gear"></i> Data Preprocessing Pipeline
+</h2>
+
+<div class="alert alert-info">
+    <i class="bi bi-info-circle"></i>
+    Configure preprocessing options below. These operations will be applied to create a cleaned dataset.
+</div>
+
+<form method="POST" action="{{ url_for('apply_preprocessing') }}">
+    
+    <!-- Remove High-Risk Columns -->
+    {% if high_severity_cols %}
+    <div class="card mb-4">
+        <div class="card-header bg-danger text-white">
+            <i class="bi bi-trash"></i> Remove High-Risk Columns
+        </div>
+        <div class="card-body">
+            <p>The following columns have high-severity leakage issues. It's recommended to remove them:</p>
+            {% for col in high_severity_cols %}
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="remove_columns" 
+                       value="{{ col }}" id="remove_{{ col }}" checked>
+                <label class="form-check-label" for="remove_{{ col }}">
+                    <strong>{{ col }}</strong> <span class="badge bg-danger">High Risk</span>
+                </label>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Duplicate Removal -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="bi bi-files"></i> Duplicate Removal
+        </div>
+        <div class="card-body">
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="remove_duplicates" 
+                       name="remove_duplicates" value="yes" checked>
+                <label class="form-check-label" for="remove_duplicates">
+                    Remove duplicate rows
+                </label>
+            </div>
+            <small class="text-muted">Removes exact duplicate rows from the dataset</small>
+        </div>
+    </div>
+    
+    <!-- Missing Values -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="bi bi-question-circle"></i> Missing Value Handling
+        </div>
+        <div class="card-body">
+            <label class="form-label">Strategy for handling missing values:</label>
+            <select class="form-select" name="missing_strategy">
+                <option value="none">No action</option>
+                <option value="mean" selected>Fill with Mean (numerical columns)</option>
+                <option value="median">Fill with Median (numerical columns)</option>
+                <option value="mode">Fill with Mode (most frequent value)</option>
+                <option value="drop">Drop rows with missing values</option>
+            </select>
+            <small class="text-muted">Choose how to handle missing values in your dataset</small>
+        </div>
+    </div>
+    
+    <!-- Datatype Correction -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="bi bi-type"></i> Datatype Correction
+        </div>
+        <div class="card-body">
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="correct_datatypes" 
+                       name="correct_datatypes" value="yes" checked>
+                <label class="form-check-label" for="correct_datatypes">
+                    Automatically correct data types
+                </label>
+            </div>
+            <small class="text-muted">Attempts to convert columns to appropriate data types</small>
+        </div>
+    </div>
+    
+    <!-- Outlier Handling -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="bi bi-graph-down"></i> Outlier Handling
+        </div>
+        <div class="card-body">
+            <label class="form-label">Method for handling outliers:</label>
+            <select class="form-select" name="outlier_method">
+                <option value="none">No action</option>
+                <option value="iqr" selected>IQR Method (Interquartile Range)</option>
+                <option value="zscore">Z-Score Method (3 standard deviations)</option>
+            </select>
+            <small class="text-muted">Caps outliers instead of removing them</small>
+        </div>
+    </div>
+    
+    <!-- Encoding -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="bi bi-code-square"></i> Categorical Encoding
+        </div>
+        <div class="card-body">
+            <label class="form-label">Encoding method for categorical variables:</label>
+            <select class="form-select" name="encoding_method">
+                <option value="none">No encoding</option>
+                <option value="label" selected>Label Encoding</option>
+                <option value="onehot">One-Hot Encoding (for columns with ≤10 categories)</option>
+            </select>
+            <small class="text-muted">Converts categorical variables to numerical format</small>
+        </div>
+    </div>
+    
+    <!-- Feature Scaling -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="bi bi-arrows-angle-contract"></i> Feature Scaling
+        </div>
+        <div class="card-body">
+            <label class="form-label">Scaling method for numerical features:</label>
+            <select class="form-select" name="scaling_method">
+                <option value="none" selected>No scaling</option>
+                <option value="standard">Standard Scaling (mean=0, std=1)</option>
+                <option value="minmax">Min-Max Scaling (0 to 1)</option>
+            </select>
+            <small class="text-muted">Apply after train/test split in your ML pipeline</small>
+        </div>
+    </div>
+    
+    <!-- Feature Selection -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="bi bi-funnel"></i> Feature Selection
+        </div>
+        <div class="card-body">
+            <label class="form-label">Feature selection method:</label>
+            <select class="form-select" name="feature_selection">
+                <option value="none" selected>No feature selection</option>
+                <option value="correlation">Remove highly correlated features (>0.95)</option>
+                <option value="variance">Remove low variance features</option>
+            </select>
+            <small class="text-muted">Reduces dimensionality by removing redundant features</small>
+        </div>
+    </div>
+    
+    <!-- Submit -->
+    <div class="d-grid">
+        <button type="submit" class="btn btn-primary btn-lg">
+            <i class="bi bi-play-circle"></i> Apply Preprocessing Pipeline
+        </button>
+    </div>
+</form>
+
+<div class="mt-3">
+    <a href="{{ url_for('detect_leakage') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Leakage Report
+    </a>
+</div>
+{% endblock %}

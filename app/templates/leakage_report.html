@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block title %}Leakage Report{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">
+    <i class="bi bi-exclamation-triangle"></i> Data Leakage Detection Report
+</h2>
+
+{% if target_column %}
+<div class="alert alert-info">
+    <i class="bi bi-bullseye"></i> <strong>Target Column:</strong> {{ target_column }}
+</div>
+{% else %}
+<div class="alert alert-warning">
+    <i class="bi bi-info-circle"></i> No target column selected. Some leakage checks may be limited.
+</div>
+{% endif %}
+
+<!-- Summary -->
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="bi bi-clipboard-data"></i> Leakage Summary
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3">
+                <div class="text-center p-3 bg-light rounded">
+                    <h3 class="text-primary">{{ leakage_summary.total_issues }}</h3>
+                    <p class="mb-0">Total Issues</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="text-center p-3 bg-light rounded">
+                    <h3 class="text-danger">{{ leakage_summary.high_severity }}</h3>
+                    <p class="mb-0">High Severity</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="text-center p-3 bg-light rounded">
+                    <h3 class="text-warning">{{ leakage_summary.medium_severity }}</h3>
+                    <p class="mb-0">Medium Severity</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="text-center p-3 bg-light rounded">
+                    <h3 class="text-success">{{ leakage_summary.low_severity }}</h3>
+                    <p class="mb-0">Low Severity</p>
+                </div>
+            </div>
+        </div>
+        
+        {% if leakage_summary.has_critical_leakage %}
+        <div class="alert alert-danger mt-3 mb-0">
+            <i class="bi bi-exclamation-circle"></i>
+            <strong>Critical leakage detected!</strong> Please address high-severity issues before training models.
+        </div>
+        {% else %}
+        <div class="alert alert-success mt-3 mb-0">
+            <i class="bi bi-check-circle"></i>
+            <strong>No critical leakage detected.</strong> Review warnings and proceed with preprocessing.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Detailed Report -->
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="bi bi-list-check"></i> Detailed Leakage Report
+    </div>
+    <div class="card-body">
+        {% if leakage_report %}
+        <div class="accordion" id="leakageAccordion">
+            {% for issue in leakage_report %}
+            <div class="accordion-item mb-3">
+                <h2 class="accordion-header" id="heading{{ loop.index }}">
+                    <button class="accordion-button {% if loop.index > 1 %}collapsed{% endif %}" 
+                            type="button" 
+                            data-bs-toggle="collapse" 
+                            data-bs-target="#collapse{{ loop.index }}">
+                        <span class="badge badge-{{ issue.severity }} me-3">
+                            {{ issue.severity|upper }}
+                        </span>
+                        <strong>{{ issue.type }}</strong>
+                        &nbsp;-&nbsp;
+                        {% if issue.affected_columns[0] == 'all' %}
+                            All Columns
+                        {% else %}
+                            {{ issue.affected_columns|join(', ') }}
+                        {% endif %}
+                    </button>
+                </h2>
+                <div id="collapse{{ loop.index }}" 
+                     class="accordion-collapse collapse {% if loop.index == 1 %}show{% endif %}" 
+                     data-bs-parent="#leakageAccordion">
+                    <div class="accordion-body">
+                        <div class="mb-3">
+                            <strong>Type:</strong> {{ issue.type }}
+                        </div>
+                        <div class="mb-3">
+                            <strong>Severity:</strong> 
+                            <span class="severity-{{ issue.severity }}">
+                                {{ issue.severity|upper }}
+                            </span>
+                        </div>
+                        <div class="mb-3">
+                            <strong>Affected Columns:</strong>
+                            {% if issue.affected_columns[0] == 'all' %}
+                                <span class="badge bg-secondary">All Columns</span>
+                            {% else %}
+                                {% for col in issue.affected_columns %}
+                                    <span class="badge bg-info">{{ col }}</span>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                        <div class="mb-3">
+                            <strong>Description:</strong>
+                            <p class="mb-0">{{ issue.description }}</p>
+                        </div>
+                        <div class="alert alert-light mb-0">
+                            <i class="bi bi-lightbulb"></i>
+                            <strong>Recommendation:</strong>
+                            {{ issue.recommendation }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="alert alert-success">
+            <i class="bi bi-check-circle"></i>
+            <strong>No data leakage detected!</strong> Your dataset appears clean.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Actions -->
+<div class="card">
+    <div class="card-body">
+        <h5 class="card-title"><i class="bi bi-arrow-right-circle"></i> Next Steps</h5>
+        <p class="card-text">
+            Proceed to preprocessing to fix identified issues and prepare your dataset for machine learning.
+        </p>
+        <div class="d-grid gap-2 d-md-flex">
+            <a href="{{ url_for('preprocess') }}" class="btn btn-primary btn-lg">
+                <i class="bi bi-gear"></i> Go to Preprocessing
+            </a>
+            <a href="{{ url_for('visualize') }}" class="btn btn-outline-primary btn-lg">
+                <i class="bi bi-bar-chart"></i> Visualize Data
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
